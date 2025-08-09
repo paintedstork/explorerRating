@@ -32,6 +32,7 @@ library(googledrive)
 library(magick)
 library(pagedown)
 library(curl)
+library(dplyr)
 #library(chromote)
 gs4_deauth()
 
@@ -139,8 +140,8 @@ server <- function(input, output, session) {
                          species_data = NULL, 
                          filtered_species_data = NULL, 
                          filtered_shapefile_data = NULL, 
-                         explorer_name = NULL, 
-                         explorer_score = NULL, 
+                         explorer_name = "", 
+                         explorer_score = 0, 
                          district_count = 0, 
                          district_total_count = 0, 
                          explore_district_summary = NULL, 
@@ -203,6 +204,7 @@ server <- function(input, output, session) {
         colnames(data$species_data) <- c("District", "State", "Score", "StateScore")
   
         data$explorer_name <- getExplorerName (data$eBird_data$Submission.ID[1], eBirdAPIToken)
+        log_message(paste("Explorer: ",data$explorer_name), 2)
         incProgress(1)
         
         data$refreshUI <- TRUE
@@ -317,51 +319,60 @@ server <- function(input, output, session) {
     }
   }
   
-  
   # Helper function to generate explorer card
   generate_card <- function(file, filetype) {
-    req(data$explorer_name, data$explorer_score, data$district_count,  
-        data$district_total_count, data$explore_map4Save, 
-        data$explore_district_summary, data$posterTable)
-    
-    bird_info <- getBirdPosterIndex(data$posterTable, data$explorer_name, 
-                                    data$explorer_score, input$state_filter)
-    
-    bird_data <- tryCatch({
-      log_message("Downloading Image", 0)
-      list(
-        bird_image = download_and_crop_image(bird_info$FileId, 300, 212),
-        bird_text = bird_info$Quote,
-        photographer = bird_info$Photographer
+    withProgress(message = "Generating Explorer Card...", value = 0, {
+      
+      incProgress(0.1, detail = "Preparing data...")
+      log_message("Start of generate_card", 3)
+      req(data$explorer_name, data$explorer_score, data$district_count,  
+          data$district_total_count, data$explore_map4Save, 
+          data$explore_district_summary, data$posterTable)
+      
+      bird_info <- getBirdPosterIndex(data$posterTable, data$explorer_name, 
+                                      data$explorer_score, input$state_filter)
+      
+      incProgress(0.3, detail = "Downloading bird image...")
+      log_message(paste("FileId", bird_info$FileId), 3)
+      bird_data <- tryCatch({
+        log_message("Downloading Image", 0)
+        list(
+          bird_image = download_and_crop_image(bird_info$FileId, 300, 212),
+          bird_text = bird_info$Quote,
+          photographer = bird_info$Photographer
+        )
+      }, error = function(e) {
+        log_message(paste("Image not obtained, taking default image:", e$message, "\n"), 0)
+        list(
+          bird_image = "redmunia.png",
+          bird_text = "You are like a Red Munia, wandering locally in search of new pastures to find new birds.",
+          photographer = "Saswat Mishra"
+        )
+      })
+      
+      incProgress(0.6, detail = "Rendering card layout...")
+      log_message("Generating Explorer Card", 0)
+      generate_explorer_card(
+        output_file = file,
+        explorer_name = toupper(data$explorer_name),
+        explorer_score = data$explorer_score,
+        map_image = data$explore_map4Save,
+        bird_image = bird_data$bird_image,
+        bird_text = bird_data$bird_text,
+        region = toupper(input$state_filter),
+        num_districts = data$district_count,
+        total_districts = data$district_total_count,
+        date = format(Sys.Date(), "%d/%m/%Y"),
+        photographer = bird_data$photographer,
+        template_file = "template.png",
+        cssfile = "bcicardstyle.css",
+        filetype = filetype
       )
-    }, error = function(e) {
-      log_message(paste("Image not obtained, taking default image:", e$message, "\n"), 0)
-      list(
-        bird_image = "redmunia.png",
-        bird_text = "You are like a Red Munia, wandering locally in search of new pastures to find new birds.",
-        photographer = "Saswat Mishra"
-      )
+      
+      incProgress(1, detail = "Done!")
     })
-    
-    log_message("Generating Explorer Card", 0)
-    generate_explorer_card(
-      output_file = file,
-      explorer_name = toupper(data$explorer_name),
-      explorer_score = data$explorer_score,
-      map_image = data$explore_map4Save,
-      bird_image = bird_data$bird_image,
-      bird_text = bird_data$bird_text,
-      region = toupper(input$state_filter),
-      num_districts = data$district_count,
-      total_districts = data$district_total_count,
-      date = format(Sys.Date(), "%d/%m/%Y"),
-      photographer = bird_data$photographer,
-      template_file = "template.png",
-      cssfile = "bcicardstyle.css",
-      filetype = filetype
-    )
   }
-  
+
   # Common filename generator
   generate_filename <- function(filetype) {
     req(data$explorer_name)

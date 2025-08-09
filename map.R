@@ -157,3 +157,4 @@ looptest <- function()
   }
   testMaps("India",testdata, shapefile_data)
 }
+#looptest()

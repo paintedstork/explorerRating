@@ -14,6 +14,7 @@ encode_image_base64 <- function(image_path) {
   paste0("data:", mime_type, ";base64,", base64)
 }
 
+
 generate_explorer_card <- function(output_file, 
                                    explorer_name, 
                                    explorer_score, 
@@ -71,11 +72,19 @@ generate_explorer_card <- function(output_file,
                bird_text
              ),
              # Region and district numbers
+#             tags$div(class = "region-text",
+#                      tags$p(class = "region-text", paste("REGION:", region))
+#             ),
+#             tags$div(class = "district-text",
+#                      tags$p(class = "district-text", paste0("NUMBER OF DISTRICTS: ", num_districts, " (", total_districts, ")"))
+#             ),
+             
+             # Region and district numbers
              tags$div(class = "region-text",
-                      tags$p(class = "region-text", paste("REGION:", region))
+                      tags$p(class = "region-text", HTML(paste0("<b>REGION:</b> ", region)))
              ),
              tags$div(class = "district-text",
-                      tags$p(class = "district-text", paste0("NUMBER OF DISTRICTS: ", num_districts, " (", total_districts, ")"))
+                      tags$p(class = "district-text", HTML(paste0("<b>NUMBER OF DISTRICTS:</b> ", num_districts, " (", total_districts, ")")))
              ),
              # Date
              tags$div(class = "date-text",
@@ -105,7 +114,7 @@ generate_explorer_card <- function(output_file,
       vheight = 1366,
       zoom = 2,
       cliprect = c(8, 8, 1080, 1360),  # Define the exact area to capture, experimented and found out
-      delay = 2
+      delay = as.integer(unlist(config_util$store[["chromateDelay"]]))
     )}, error = function (e) {
       log_message(paste("Card generation failed:", e$message, "\n"), 0)
       return (1)
@@ -192,8 +201,9 @@ testcard <- function()
     print("removed file")
   }
   
-  state = "India"
-  testdata <- read.csv(".\\test\\test.csv", sep=",")
+  state = "Odisha"
+#  testdata <- read.csv(".\\test\\test.csv", sep=";")
+  testdata <- read.csv(".\\test\\test.csv", sep = ";", dec = ",", stringsAsFactors = FALSE)
   shapefile_data <- st_read("ind_dist.shp")
   if (state != "India")
   {
@@ -202,7 +212,7 @@ testcard <- function()
   }
   
   legendPosition <- read.csv(".\\test\\StateLegend.csv") %>% 
-                        filter (State == "India") %>% 
+                        filter (State == state) %>% 
                         select(LegendPosition) %>% 
                         pull()
     
@@ -217,7 +227,9 @@ testcard <- function()
                         "Purples",
                         "white")
 
-
+  png_file <- paste0("intermediateMap", state, ".png")
+  ggsave(png_file, map)
+  
   ## Example usage
   generate_explorer_card(
     output_file = output_file,
@@ -229,7 +241,7 @@ testcard <- function()
     region = "INDIA",
     num_districts = 461,
     total_districts = 735,
-    date = "24/01/2025",
+    date = "09/08/2025",
     photographer = "Saswat Mishra",
   #  template_file = ".\\test\\Explorer Score (1088 x 1360 px).png",       # Path to the template PNG file,
     template_file = "template.png",       # Path to the template PNG file,

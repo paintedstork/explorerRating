@@ -14,6 +14,7 @@ processEbirdFile <- function(filepath, gs_taxonomy) {
 ############################GET EXPLORER NAME#####################################
 getExplorerName <- function (checklist_id, ebird_api_token)
 {
+  user_display_name <- "Unknown"
   # Call the eBird API to get the observer's display name
   ebird_api_url <- paste0("https://api.ebird.org/v2/product/checklist/view/", checklist_id)
   
@@ -31,6 +32,11 @@ getExplorerName <- function (checklist_id, ebird_api_token)
     log_message(paste("User display name fetched:", user_display_name, "\n"), 1)
   } else {
     log_message("Error: Unable to fetch user display name.\n", 0)
+  }
+  
+  if(is.null(user_display_name) || (user_display_name ==""))
+  {
+    user_display_name <- "Unknown"
   }
   return (user_display_name)
 }

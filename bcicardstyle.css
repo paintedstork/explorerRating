@@ -42,13 +42,13 @@ body {
 
 .region-text, .district-text  {
   font-size: 32px;
-  font-style: bold;
-  font-weight: bold;
+/*  font-style: bold;*/
+/*  font-weight: bold;*/
   color: black;
   white-space: nowrap;  /* Prevent wrapping */
   font-family: 'Crimson Pro', serif; /* Change this to Crimson Pro */
   position: absolute;
-  bottom: 250px;
+  bottom: 240px; /*250px;*/
 }
 
 .region-text {
@@ -100,10 +100,12 @@ body {
   position: absolute;
   object-fit: cover;
 }
+
 .map-image {
-  left: 25px;
+  left: 0px; /*25px;*/
   width: 650px;
-  height: 522px;
+  height: 592px; /* 522;*/
+  object-fit: contain;
 }
 
 #map-image .leaflet-container {
