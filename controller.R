@@ -178,7 +178,10 @@ server <- function(input, output, session) {
       data$eBird_data <- processEbirdFile (input$ebird_zip$datapath, gs_taxonomy)
       
       # Populate dropdown with state options
-      data$eBird_data = data$eBird_data %>% inner_join (gs_statelist, by = c("State.Province" = "State Code")) 
+      # Remove lists with empty county as this is not useful for scores.
+      data$eBird_data = data$eBird_data %>% 
+                            filter(County != "")  %>%
+                            inner_join (gs_statelist, by = c("State.Province" = "State Code")) 
       data$state_list <- unique(c("India", sort(data$eBird_data$State)))
       
       isolate({
@@ -193,7 +196,7 @@ server <- function(input, output, session) {
         
         req(data$species_data, gs_data)
         # Merge species data with geographical data and calculate district scores
-        data$species_data <- inner_join(data$species_data, gs_data, by = c("County" = "County")) %>% 
+        data$species_data <- inner_join(data$species_data, gs_data, by = c("County" = "County", "State" = "State")) %>% 
                                 mutate(Score = species_count / `Total Species`) %>% 
                                   select (County, State, Score) %>%
                                     group_by (State) %>%
